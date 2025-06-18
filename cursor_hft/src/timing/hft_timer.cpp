@@ -70,56 +70,70 @@ LatencyHistogram::LatencyHistogram(size_t num_bins) noexcept {
 }
 
 void LatencyHistogram::record_latency(HFTTimer::ns_t latency) noexcept {
-    // Update min/max atomically
-    HFTTimer::ns_t current_min = min_latency_.load(std::memory_order_relaxed);
+    // Update min/max atomically with proper memory ordering
+    HFTTimer::ns_t current_min = min_latency_.load(std::memory_order_acquire);
     while (latency < current_min) {
         if (min_latency_.compare_exchange_weak(current_min, latency,
-                                             std::memory_order_relaxed)) {
+                                             std::memory_order_acq_rel)) {
             break;
         }
     }
 
-    HFTTimer::ns_t current_max = max_latency_.load(std::memory_order_relaxed);
+    HFTTimer::ns_t current_max = max_latency_.load(std::memory_order_acquire);
     while (latency > current_max) {
         if (max_latency_.compare_exchange_weak(current_max, latency,
-                                             std::memory_order_relaxed)) {
+                                             std::memory_order_acq_rel)) {
             break;
         }
     }
 
-    // Update running statistics
-    total_samples_.fetch_add(1, std::memory_order_relaxed);
-    sum_latency_.fetch_add(static_cast<double>(latency), std::memory_order_relaxed);
+    // Update running statistics with proper memory ordering
+    total_samples_.fetch_add(1, std::memory_order_acq_rel);
+    sum_latency_.fetch_add(static_cast<double>(latency), std::memory_order_acq_rel);
     sum_squared_latency_.fetch_add(static_cast<double>(latency) * latency,
-                                 std::memory_order_relaxed);
+                                 std::memory_order_acq_rel);
 
-    // Update histogram bin
-    const size_t bin_index = std::min(
-        static_cast<size_t>(std::log2(latency + 1)),
-        HFTTimer::MAX_HISTOGRAM_BINS - 1);
-    bins_[bin_index].fetch_add(1, std::memory_order_relaxed);
+    // Update histogram bin with proper binning logic
+    const size_t bin_index = latency == 0 ? 0 : 
+        std::min(static_cast<size_t>(std::log2(latency)) + 1,
+                HFTTimer::MAX_HISTOGRAM_BINS - 1);
+    bins_[bin_index].fetch_add(1, std::memory_order_acq_rel);
 }
 
 void LatencyHistogram::reset() noexcept {
+    // Use acquire-release ordering for all reset operations
     for (auto& bin : bins_) {
-        bin.store(0, std::memory_order_relaxed);
+        bin.store(0, std::memory_order_release);
     }
-    total_samples_.store(0, std::memory_order_relaxed);
+    
+    // Reset all statistics atomically
+    total_samples_.store(0, std::memory_order_release);
     min_latency_.store(std::numeric_limits<HFTTimer::ns_t>::max(),
-                      std::memory_order_relaxed);
-    max_latency_.store(0, std::memory_order_relaxed);
-    sum_latency_.store(0.0, std::memory_order_relaxed);
-    sum_squared_latency_.store(0.0, std::memory_order_relaxed);
+                      std::memory_order_release);
+    max_latency_.store(0, std::memory_order_release);
+    sum_latency_.store(0.0, std::memory_order_release);
+    sum_squared_latency_.store(0.0, std::memory_order_release);
+    
+    // Ensure all stores are visible
+    std::atomic_thread_fence(std::memory_order_release);
 }
 
 LatencyStats LatencyHistogram::get_stats() const noexcept {
     LatencyStats stats;
-    const uint64_t total = total_samples_.load(std::memory_order_acquire);
     
+    // Take a snapshot of all data with proper memory ordering
+    const uint64_t total = total_samples_.load(std::memory_order_acquire);
     if (total == 0) {
+        stats.min_latency = std::numeric_limits<HFTTimer::ns_t>::max();
+        stats.max_latency = 0;
+        stats.mean_latency = 0;
+        stats.std_dev = 0;
+        stats.total_samples = 0;
+        stats.percentiles.fill(0);
         return stats;
     }
 
+    // Load all statistics with acquire ordering
     stats.total_samples = total;
     stats.min_latency = min_latency_.load(std::memory_order_acquire);
     stats.max_latency = max_latency_.load(std::memory_order_acquire);
@@ -130,20 +144,40 @@ LatencyStats LatencyHistogram::get_stats() const noexcept {
     stats.mean_latency = sum / total;
     stats.std_dev = std::sqrt((sum_squared / total) - (stats.mean_latency * stats.mean_latency));
 
-    // Calculate percentiles
-    const std::array<double, 4> percentiles = {0.5, 0.9, 0.95, 0.99};
-    std::array<uint64_t, 4> targets;
-    for (size_t i = 0; i < percentiles.size(); ++i) {
-        targets[i] = static_cast<uint64_t>(total * percentiles[i]);
+    // Calculate percentiles using a snapshot of the histogram
+    std::array<uint64_t, HFTTimer::MAX_HISTOGRAM_BINS> bin_snapshot;
+    for (size_t i = 0; i < HFTTimer::MAX_HISTOGRAM_BINS; ++i) {
+        bin_snapshot[i] = bins_[i].load(std::memory_order_acquire);
     }
 
-    uint64_t cumulative = 0;
-    for (size_t bin = 0; bin < HFTTimer::MAX_HISTOGRAM_BINS; ++bin) {
-        cumulative += bins_[bin].load(std::memory_order_acquire);
-        for (size_t i = 0; i < percentiles.size(); ++i) {
-            if (cumulative >= targets[i] && stats.percentiles[i] == 0) {
-                stats.percentiles[i] = static_cast<double>(1ULL << bin);
-            }
+    // Calculate cumulative distribution
+    std::array<uint64_t, HFTTimer::MAX_HISTOGRAM_BINS> cumulative;
+    cumulative[0] = bin_snapshot[0];
+    for (size_t i = 1; i < HFTTimer::MAX_HISTOGRAM_BINS; ++i) {
+        cumulative[i] = cumulative[i-1] + bin_snapshot[i];
+    }
+
+    // Calculate percentiles
+    const std::array<double, 4> percentiles = {0.5, 0.9, 0.95, 0.99};
+    for (size_t i = 0; i < percentiles.size(); ++i) {
+        const uint64_t target = static_cast<uint64_t>(total * percentiles[i]);
+        size_t bin = 0;
+        while (bin < HFTTimer::MAX_HISTOGRAM_BINS && cumulative[bin] < target) {
+            ++bin;
+        }
+        
+        // Convert bin index to latency value
+        if (bin == 0) {
+            stats.percentiles[i] = 0;
+        } else if (bin >= HFTTimer::MAX_HISTOGRAM_BINS) {
+            stats.percentiles[i] = static_cast<double>(1ULL << (HFTTimer::MAX_HISTOGRAM_BINS - 1));
+        } else {
+            // Linear interpolation between bins
+            const double bin_start = bin == 0 ? 0 : static_cast<double>(1ULL << (bin - 1));
+            const double bin_end = static_cast<double>(1ULL << bin);
+            const double bin_fraction = static_cast<double>(target - cumulative[bin-1]) / 
+                                      static_cast<double>(bin_snapshot[bin]);
+            stats.percentiles[i] = bin_start + (bin_end - bin_start) * bin_fraction;
         }
     }
 

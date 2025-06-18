@@ -14,8 +14,20 @@ endif()
 # Include directories
 include_directories(include)
 
-# Find required packages
-find_package(GTest REQUIRED)
+# Fetch Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+# Find benchmark (you have this installed via Homebrew)
 find_package(benchmark REQUIRED)
 
 # Add timing library
@@ -38,8 +50,8 @@ add_executable(hft_timing_test
 target_link_libraries(hft_timing_test
     PRIVATE
         hft_timing
-        GTest::GTest
-        GTest::Main
+        gtest_main
+        gtest
 )
 
 # Add timing benchmarks
@@ -54,9 +66,11 @@ target_link_libraries(hft_timing_benchmark
         benchmark::benchmark_main
 )
 
+# Enable testing
+enable_testing()
+
 # Add test command
 add_test(NAME hft_timing_test COMMAND hft_timing_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
-

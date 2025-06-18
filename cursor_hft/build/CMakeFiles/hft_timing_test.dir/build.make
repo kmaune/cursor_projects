@@ -96,8 +96,8 @@ hft_timing_test_EXTERNAL_OBJECTS =
 hft_timing_test: CMakeFiles/hft_timing_test.dir/tests/timing/hft_timer_test.cpp.o
 hft_timing_test: CMakeFiles/hft_timing_test.dir/build.make
 hft_timing_test: libhft_timing.a
-hft_timing_test: /opt/anaconda3/lib/libgtest_main.1.11.0.dylib
-hft_timing_test: /opt/anaconda3/lib/libgtest.1.11.0.dylib
+hft_timing_test: lib/libgtest_main.a
+hft_timing_test: lib/libgtest.a
 hft_timing_test: CMakeFiles/hft_timing_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable hft_timing_test"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/hft_timing_test.dir/link.txt --verbose=$(VERBOSE)

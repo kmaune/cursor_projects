@@ -1,0 +1,123 @@
+# Build directories
+build/
+out/
+bin/
+lib/
+dist/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+compile_commands.json
+Testing/
+
+# Generated executables and libraries
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Object files
+*.o
+*.obj
+*.lo
+*.slo
+
+# Compiled Dynamic libraries
+*.so.*
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+
+# Dependencies downloaded by CMake
+_deps/
+.cmake/
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor specific
+.cursor/
+.cursorrules.bak
+
+# Performance profiling files
+*.prof
+perf.data*
+callgrind.out.*
+massif.out.*
+
+# Core dumps
+core
+core.*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Package managers
+node_modules/
+package-lock.json
+
+# Python (if you add any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Coverage reports
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Benchmark results
+benchmark_results/
+*.benchmark
+
+# Documentation build
+docs/build/
+docs/_build/
+
+# Cache directories
+.cache/
+cache/
