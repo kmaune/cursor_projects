@@ -45,6 +45,8 @@ _deps/
 
 # macOS specific
 .DS_Store
+*/.DS_Store
+**/.DS_Store
 .AppleDouble
 .LSOverride
 Icon

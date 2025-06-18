@@ -63,12 +63,12 @@ target_link_libraries(hft_timing_test
         gtest
 )
 
-# Add messaging tests
-add_executable(hft_messaging_test
-    tests/messaging/ring_buffer_test.cpp
+# Add SPSC ring buffer tests
+add_executable(hft_spsc_ring_buffer_test
+    tests/messaging/spsc_ring_buffer_test.cpp
 )
 
-target_link_libraries(hft_messaging_test
+target_link_libraries(hft_spsc_ring_buffer_test
     PRIVATE
         hft_messaging
         hft_timing
@@ -88,12 +88,12 @@ target_link_libraries(hft_timing_benchmark
         benchmark::benchmark_main
 )
 
-# Add messaging benchmarks
-add_executable(hft_messaging_benchmark
-    benchmarks/messaging/benchmark.cpp
+# Add SPSC ring buffer benchmarks
+add_executable(hft_spsc_ring_buffer_benchmark
+    benchmarks/messaging/spsc_ring_buffer_benchmark.cpp
 )
 
-target_link_libraries(hft_messaging_benchmark
+target_link_libraries(hft_spsc_ring_buffer_benchmark
     PRIVATE
         hft_messaging
         hft_timing
@@ -106,7 +106,7 @@ enable_testing()
 
 # Add test commands
 add_test(NAME hft_timing_test COMMAND hft_timing_test)
-add_test(NAME hft_messaging_test COMMAND hft_messaging_test)
+add_test(NAME hft_spsc_ring_buffer_test COMMAND hft_spsc_ring_buffer_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
