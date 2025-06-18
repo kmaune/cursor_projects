@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhft_timing.a CMakeFiles/hft_timing.dir/src/timing/hft_timer.cpp.o
+/usr/bin/ranlib libhft_timing.a

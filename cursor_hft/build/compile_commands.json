@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/build",
+  "command": "/usr/bin/clang++  -I/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/include -I/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/src -O0 -g -fsanitize=address -std=gnu++20 -arch arm64 -o CMakeFiles/hft_timing.dir/src/timing/hft_timer.cpp.o -c /Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/src/timing/hft_timer.cpp",
+  "file": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/src/timing/hft_timer.cpp",
+  "output": "CMakeFiles/hft_timing.dir/src/timing/hft_timer.cpp.o"
+},
+{
+  "directory": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/build",
+  "command": "/usr/bin/clang++ -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -I/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/include -isystem /opt/anaconda3/include -O0 -g -fsanitize=address -std=gnu++20 -arch arm64 -o CMakeFiles/hft_timing_test.dir/tests/timing/hft_timer_test.cpp.o -c /Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/tests/timing/hft_timer_test.cpp",
+  "file": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/tests/timing/hft_timer_test.cpp",
+  "output": "CMakeFiles/hft_timing_test.dir/tests/timing/hft_timer_test.cpp.o"
+},
+{
+  "directory": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/build",
+  "command": "/usr/bin/clang++ -DBENCHMARK_STATIC_DEFINE -I/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/include -isystem /opt/homebrew/include -O0 -g -fsanitize=address -std=gnu++20 -arch arm64 -o CMakeFiles/hft_timing_benchmark.dir/benchmarks/timing/hft_timer_benchmark.cpp.o -c /Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/benchmarks/timing/hft_timer_benchmark.cpp",
+  "file": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/benchmarks/timing/hft_timer_benchmark.cpp",
+  "output": "CMakeFiles/hft_timing_benchmark.dir/benchmarks/timing/hft_timer_benchmark.cpp.o"
+},
+{
+  "directory": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/build",
+  "command": "/usr/bin/clang++  -I/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/include -O0 -g -fsanitize=address -std=gnu++20 -arch arm64 -o CMakeFiles/test_setup.dir/src/test_setup.cpp.o -c /Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/src/test_setup.cpp",
+  "file": "/Users/kmaune/Desktop/coding/ai_tool_tests/cursor/cursor_hft/src/test_setup.cpp",
+  "output": "CMakeFiles/test_setup.dir/src/test_setup.cpp.o"
+}
+]
