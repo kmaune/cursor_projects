@@ -22,13 +22,12 @@ FetchContent_Declare(
     GIT_TAG v1.14.0
 )
 
-# For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
 FetchContent_MakeAvailable(googletest)
 
-# Find benchmark (you have this installed via Homebrew)
+# Find benchmark
 find_package(benchmark REQUIRED)
+find_package(Threads REQUIRED)
 
 # Add timing library
 add_library(hft_timing
@@ -42,6 +41,16 @@ target_include_directories(hft_timing
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+# Add messaging library (header-only for now)
+add_library(hft_messaging INTERFACE)
+target_include_directories(hft_messaging INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hft_messaging INTERFACE 
+    Threads::Threads
+    hft_timing  # Messaging depends on timing
+)
+
 # Add timing tests
 add_executable(hft_timing_test
     tests/timing/hft_timer_test.cpp
@@ -49,6 +58,19 @@ add_executable(hft_timing_test
 
 target_link_libraries(hft_timing_test
     PRIVATE
+        hft_timing
+        gtest_main
+        gtest
+)
+
+# Add messaging tests
+add_executable(hft_messaging_test
+    tests/messaging/ring_buffer_test.cpp
+)
+
+target_link_libraries(hft_messaging_test
+    PRIVATE
+        hft_messaging
         hft_timing
         gtest_main
         gtest
@@ -66,11 +88,26 @@ target_link_libraries(hft_timing_benchmark
         benchmark::benchmark_main
 )
 
+# Add messaging benchmarks
+add_executable(hft_messaging_benchmark
+    benchmarks/messaging/benchmark.cpp
+)
+
+target_link_libraries(hft_messaging_benchmark
+    PRIVATE
+        hft_messaging
+        hft_timing
+        benchmark::benchmark
+        benchmark::benchmark_main
+)
+
 # Enable testing
 enable_testing()
 
-# Add test command
+# Add test commands
 add_test(NAME hft_timing_test COMMAND hft_timing_test)
+add_test(NAME hft_messaging_test COMMAND hft_messaging_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
+target_link_libraries(test_setup PRIVATE hft_timing hft_messaging)
