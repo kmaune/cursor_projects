@@ -213,6 +213,21 @@ target_link_libraries(hft_treasury_ring_buffer_benchmark
         benchmark::benchmark_main
 )
 
+# Feed Handler Test
+add_executable(hft_feed_handler_test tests/market_data/feed_handler_test.cpp)
+target_link_libraries(hft_feed_handler_test 
+    PRIVATE 
+        hft_market_data hft_timing hft_memory hft_messaging
+        gtest_main gtest)
+add_test(NAME hft_feed_handler_test COMMAND hft_feed_handler_test)
+
+# Feed Handler Benchmark  
+add_executable(hft_feed_handler_benchmark benchmarks/market_data/feed_handler_benchmark.cpp)
+target_link_libraries(hft_feed_handler_benchmark 
+    PRIVATE 
+        hft_market_data hft_timing hft_memory hft_messaging
+        benchmark::benchmark benchmark::benchmark_main)
+
 # Enable testing
 enable_testing()
 
