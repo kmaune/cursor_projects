@@ -27,10 +27,19 @@ RawMarketMessage make_raw_msg(uint64_t seq, MessageType type, uint32_t instr_id,
     msg.message_type = static_cast<uint32_t>(type);
     msg.instrument_id = instr_id;
     double price_val = price;
-    std::memcpy(msg.raw_data, &price_val, sizeof(double));
-    std::memcpy(msg.raw_data + 8, &price_val, sizeof(double)); // ask/trade price
-    std::memcpy(msg.raw_data + 16, &size, sizeof(uint64_t));   // bid/trade size
-    std::memcpy(msg.raw_data + 24, &size, sizeof(uint64_t));   // ask size
+    if (type == MessageType::Tick) {
+        std::memcpy(msg.raw_data, &price_val, sizeof(double));
+        std::memcpy(msg.raw_data + 8, &price_val, sizeof(double)); // ask price
+        std::memcpy(msg.raw_data + 16, &size, sizeof(uint64_t));   // bid size
+        std::memcpy(msg.raw_data + 24, &size, sizeof(uint64_t));   // ask size
+    } else if (type == MessageType::Trade) {
+        std::memcpy(msg.raw_data, &price_val, sizeof(double));     // trade price
+        std::memcpy(msg.raw_data + 8, &size, sizeof(uint64_t));    // trade size
+        // Fill trade_id with dummy data (e.g., all 0xAB)
+        uint8_t trade_id[16];
+        std::memset(trade_id, 0xAB, sizeof(trade_id));
+        std::memcpy(msg.raw_data + 16, trade_id, 16);              // trade_id
+    }
     msg.checksum = compute_checksum(msg);
     return msg;
 }
