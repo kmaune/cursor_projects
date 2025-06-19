@@ -197,22 +197,22 @@ public:
         size_t processed = 0;
         for (size_t i = 0; i < message_count; ++i) {
             const RawMarketMessage& msg = raw_messages[i];
-            // Duplicate detection
-            if (is_duplicate(msg.sequence_number)) {
-                ++stats_.duplicate_messages;
-                continue;
-            }
-            // Sequence validation: only count as a gap if the incoming sequence is greater than expected
+            
+            // Check for sequence gaps BEFORE duplicate detection
             if (expected_sequence_ != 0 && msg.sequence_number > expected_sequence_) {
                 ++stats_.sequence_gaps;
             }
-            // Update expected_sequence_ to the next expected value
-            if (expected_sequence_ == 0) {
-                expected_sequence_ = msg.sequence_number + 1;
-            } else {
-                expected_sequence_ = msg.sequence_number + 1;
+            
+            // Duplicate detection
+            if (is_duplicate(msg.sequence_number)) {
+                ++stats_.duplicate_messages;
+                continue;  // Skip processing but don't update expected_sequence_
             }
+            
+            // Update expected sequence only for non-duplicates
+            expected_sequence_ = msg.sequence_number + 1;
             add_recent(msg.sequence_number);
+            
             // Parse and classify
             HFTTimer::ns_t latency = 0;
             ValidationResult res = ValidationResult::InvalidFormat;
@@ -377,4 +377,4 @@ private:
 };
 
 } // namespace market_data
-} // namespace hft 
+} // namespace hft
