@@ -49,9 +49,20 @@
    - **Batch processing:** >1M messages/second throughput capability
    - **Perfect integration:** Seamless with treasury data structures and infrastructure
    - **Performance:** All tests passing, production-ready implementation
-7. **Market connectivity simulation** 🚀 READY TO START
-   - Venue-specific order types and rules
-   - Network latency simulation
+7. **Market connectivity simulation** 🚀 IN PROGRESS - Progressive Approach
+   - **Phase 2.3a:** Single Primary Dealer Simulation (CURRENT TARGET)
+     - Core order lifecycle: submission → acknowledgment → fill/reject
+     - Treasury-specific order types (limit orders with 32nd pricing)
+     - Realistic latency modeling (base latency + jitter + queue delays)
+     - Integration with feed handler for market-driven order generation
+   - **Phase 2.3b:** Generic Venue Framework (PLANNED)
+     - Refactor to VenueInterface abstraction
+     - Configurable venue-specific behavior
+     - Maintain performance characteristics
+   - **Phase 2.3c:** Multi-Venue Integration (FUTURE)
+     - Inter-dealer broker simulation
+     - Smart order routing
+     - Cross-venue latency arbitrage
 
 ### Phase 3: Trading Logic (PLANNED)
 **Objectives:** Strategy implementation and risk management
@@ -94,7 +105,7 @@
   - ✅ **ALL TESTS PASSING:** Production-ready implementation validated
   - ✅ **PERFORMANCE TARGETS MET:** <200ns parsing, >1M messages/sec capability
   - ✅ **QUALITY CONTROLS:** Sequence gaps, duplicates, checksum validation working
-  - 🚀 **READY FOR:** Market Connectivity Simulation (Phase 2, Component 3)
+  - 🚀 **READY FOR:** Primary Dealer Venue Simulation (Phase 2, Component 3a)
 
 ## Key Learnings: AI-Driven HFT Development - MAJOR UPDATE
 

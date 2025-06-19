@@ -1,0 +1,5 @@
+add_executable(feed_handler_benchmark feed_handler_benchmark.cpp)
+target_link_libraries(feed_handler_benchmark PRIVATE benchmark::benchmark)
+
+add_executable(venue_simulation_benchmark venue_simulation_benchmark.cpp)
+target_link_libraries(venue_simulation_benchmark PRIVATE benchmark::benchmark) 
