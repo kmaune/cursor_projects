@@ -111,3 +111,5 @@ add_test(NAME hft_spsc_ring_buffer_test COMMAND hft_spsc_ring_buffer_test)
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
 target_link_libraries(test_setup PRIVATE hft_timing hft_messaging)
+
+install(DIRECTORY include/hft/memory/ DESTINATION include/hft/memory)

@@ -27,4 +27,8 @@ target_link_libraries(messaging_test
 )
 
 # Add test command
-add_test(NAME messaging_test COMMAND messaging_test) 
+add_test(NAME messaging_test COMMAND messaging_test)
+
+add_executable(object_pool_test memory/object_pool_test.cpp)
+target_link_libraries(object_pool_test PRIVATE hft_timing)
+add_test(NAME object_pool_test COMMAND object_pool_test) 
