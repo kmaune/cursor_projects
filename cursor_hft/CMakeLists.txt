@@ -101,12 +101,46 @@ target_link_libraries(hft_spsc_ring_buffer_benchmark
         benchmark::benchmark_main
 )
 
+# Add memory management library (header-only)
+add_library(hft_memory INTERFACE)
+target_include_directories(hft_memory INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hft_memory INTERFACE 
+    hft_timing  # ObjectPool depends on timing
+)
+
+# Add object pool tests
+add_executable(hft_object_pool_test
+    tests/memory/object_pool_test.cpp
+)
+target_link_libraries(hft_object_pool_test
+    PRIVATE
+        hft_memory
+        hft_timing
+        gtest_main
+        gtest
+)
+
+# Add object pool benchmarks
+add_executable(hft_object_pool_benchmark
+    benchmarks/memory/object_pool_benchmark.cpp
+)
+target_link_libraries(hft_object_pool_benchmark
+    PRIVATE
+        hft_memory
+        hft_timing
+        benchmark::benchmark
+        benchmark::benchmark_main
+)
+
 # Enable testing
 enable_testing()
 
 # Add test commands
 add_test(NAME hft_timing_test COMMAND hft_timing_test)
 add_test(NAME hft_spsc_ring_buffer_test COMMAND hft_spsc_ring_buffer_test)
+add_test(NAME hft_object_pool_test COMMAND hft_object_pool_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)

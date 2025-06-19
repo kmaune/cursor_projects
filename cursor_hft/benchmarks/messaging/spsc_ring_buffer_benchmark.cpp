@@ -47,57 +47,40 @@ BENCHMARK(BM_BatchOperations)
     ->Range(1, 1024)
     ->UseRealTime();
 
-// Benchmark producer/consumer throughput
-static void BM_ProducerConsumer(benchmark::State& state) {
+// Benchmark producer/consumer latency (single round-trip)
+static void BM_ProducerConsumerLatency(benchmark::State& state) {
     const size_t batch_size = state.range(0);
     SPSCRingBuffer<int, 1024> buffer;
-    std::atomic<bool> producer_done{false};
-    std::atomic<size_t> items_consumed{0};
+    std::vector<int> input(batch_size);
+    std::vector<int> output(batch_size);
     
-    // Producer thread
-    std::thread producer([&]() {
-        std::vector<int> batch(batch_size);
-        for (size_t i = 0; i < batch_size; ++i) {
-            batch[i] = static_cast<int>(i);
-        }
-        
-        while (!producer_done) {
-            size_t pushed = 0;
-            while (pushed < batch_size) {
-                pushed += buffer.try_push_batch(batch.begin() + pushed, batch.end());
-                if (pushed < batch_size) {
-                    std::this_thread::yield();
-                }
-            }
-        }
-    });
-    
-    // Consumer thread
-    std::thread consumer([&]() {
-        std::vector<int> batch(batch_size);
-        while (!producer_done || !buffer.empty()) {
-            size_t popped = buffer.try_pop_batch(batch.begin(), batch.end());
-            if (popped > 0) {
-                items_consumed += popped;
-            } else {
-                std::this_thread::yield();
-            }
-        }
-    });
-    
-    for (auto _ : state) {
-        // Let the threads run for a short duration
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // Fill input vector
+    for (size_t i = 0; i < batch_size; ++i) {
+        input[i] = static_cast<int>(i);
     }
     
-    producer_done = true;
-    producer.join();
-    consumer.join();
+    for (auto _ : state) {
+        // Measure push + pop latency
+        auto start = HFTTimer::get_timestamp_ns();
+        
+        size_t pushed = buffer.try_push_batch(input.begin(), input.end());
+        size_t popped = buffer.try_pop_batch(output.begin(), output.end());
+        
+        auto end = HFTTimer::get_timestamp_ns();
+        
+        benchmark::DoNotOptimize(pushed);
+        benchmark::DoNotOptimize(popped);
+        
+        // Only count successful round-trips
+        if (pushed == batch_size && popped == batch_size) {
+            state.SetItemsProcessed(batch_size * 2); // push + pop
+            state.counters["latency_ns"] = end - start;
+        }
+    }
     
-    state.SetItemsProcessed(items_consumed);
-    state.SetBytesProcessed(items_consumed * sizeof(int));
+    state.SetBytesProcessed(state.iterations() * batch_size * 2 * sizeof(int));
 }
-BENCHMARK(BM_ProducerConsumer)
+BENCHMARK(BM_ProducerConsumerLatency)
     ->RangeMultiplier(2)
     ->Range(1, 1024)
     ->UseRealTime();
@@ -176,4 +159,4 @@ BENCHMARK(BM_CacheLineEffects)
     ->Range(1, 64)
     ->UseRealTime();
 
-BENCHMARK_MAIN(); 
+BENCHMARK_MAIN();
