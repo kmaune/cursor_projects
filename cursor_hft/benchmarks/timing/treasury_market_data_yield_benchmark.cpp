@@ -11,12 +11,12 @@ int main() {
     std::uniform_real_distribution<double> price_dist(95.0, 105.0);
     std::uniform_real_distribution<double> yield_dist(0.01, 0.05);
     TreasuryInstrument instrs[] = {
-        {TreasuryType::Bill_3M, 90, 1'000'000},
-        {TreasuryType::Bill_6M, 180, 1'000'000},
-        {TreasuryType::Note_2Y, 730, 1'000'000},
-        {TreasuryType::Note_5Y, 1825, 1'000'000},
-        {TreasuryType::Note_10Y, 3650, 1'000'000},
-        {TreasuryType::Bond_30Y, 10950, 1'000'000}
+        TreasuryInstrument(TreasuryType::Bill_3M, 90, 1'000'000),
+        TreasuryInstrument(TreasuryType::Bill_6M, 180, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_2Y, 730, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_5Y, 1825, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_10Y, 3650, 1'000'000),
+        TreasuryInstrument(TreasuryType::Bond_30Y, 10950, 1'000'000)
     };
     double min_ns = 1e9, max_ns = 0, sum_ns = 0;
     for (auto& instr : instrs) {

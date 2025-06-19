@@ -14,7 +14,7 @@ TEST(TreasuryMarketDataYield, Price32ndConversion) {
 }
 
 TEST(TreasuryMarketDataYield, YieldCalculationRoundtrip) {
-    TreasuryInstrument instr{TreasuryType::Note_5Y, 1825, 1'000'000};
+    TreasuryInstrument instr(TreasuryType::Note_5Y, 1825, 1'000'000);
     double price = 98.75;
     auto p32 = Price32nd::from_decimal(price);
     double yield = YieldCalculator::price_to_yield(instr, p32, 1825);
@@ -23,7 +23,7 @@ TEST(TreasuryMarketDataYield, YieldCalculationRoundtrip) {
 }
 
 TEST(TreasuryMarketDataYield, EdgeCases) {
-    TreasuryInstrument instr{TreasuryType::Bill_3M, 90, 1'000'000};
+    TreasuryInstrument instr(TreasuryType::Bill_3M, 90, 1'000'000);
     auto p32 = Price32nd::from_decimal(100.0);
     double yield = YieldCalculator::price_to_yield(instr, p32, 90);
     EXPECT_GE(yield, 0.0);

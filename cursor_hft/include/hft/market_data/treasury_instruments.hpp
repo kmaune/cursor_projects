@@ -30,11 +30,16 @@ enum class TreasuryType : uint8_t {
 
 // Treasury instrument definition
 struct alignas(CACHE_LINE_SIZE) TreasuryInstrument {
-    TreasuryType type;                // 1
-    uint8_t _pad0[3];                 // 3 (align to 4)
-    uint32_t maturity_days;           // 4
-    uint64_t face_value;              // 8
-    uint8_t _pad1[48];                // 48 (total: 1+3+4+8+48 = 64)
+    TreasuryType type;                // 1 byte
+    uint8_t _pad0[3];                 // 3 bytes (align to 4)
+    uint32_t maturity_days;           // 4 bytes
+    uint64_t face_value;              // 8 bytes
+    uint8_t _pad1[48];                // 48 bytes padding
+    // Total: 1 + 3 + 4 + 8 + 48 = 64 bytes
+
+    // Constructor for safe initialization
+    TreasuryInstrument(TreasuryType t, uint32_t days, uint64_t value)
+        : type(t), _pad0{}, maturity_days(days), face_value(value), _pad1{} {}
 };
 static_assert(sizeof(TreasuryInstrument) == CACHE_LINE_SIZE, "TreasuryInstrument must be 64 bytes");
 
