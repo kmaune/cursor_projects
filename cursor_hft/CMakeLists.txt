@@ -71,6 +71,18 @@ target_link_libraries(hft_market_data INTERFACE
     hft_messaging
 )
 
+# Add trading library (header-only)
+add_library(hft_trading INTERFACE)
+target_include_directories(hft_trading INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hft_trading INTERFACE 
+    hft_timing
+    hft_memory
+    hft_messaging
+    hft_market_data
+)
+
 # Add timing tests
 add_executable(hft_timing_test
     tests/timing/hft_timer_test.cpp
@@ -138,6 +150,21 @@ target_link_libraries(hft_treasury_ring_buffer_test
     PRIVATE
         hft_market_data
         hft_messaging
+        gtest_main
+        gtest
+)
+
+# Add order book tests
+add_executable(hft_order_book_test
+    tests/trading/order_book_test.cpp
+)
+target_link_libraries(hft_order_book_test
+    PRIVATE
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
         gtest_main
         gtest
 )
@@ -213,6 +240,21 @@ target_link_libraries(hft_treasury_ring_buffer_benchmark
         benchmark::benchmark_main
 )
 
+# Add order book benchmarks
+add_executable(hft_order_book_benchmark
+    benchmarks/trading/order_book_benchmark.cpp
+)
+target_link_libraries(hft_order_book_benchmark
+    PRIVATE
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        benchmark::benchmark
+        benchmark::benchmark_main
+)
+
 # Feed Handler Test
 add_executable(hft_feed_handler_test tests/market_data/feed_handler_test.cpp)
 target_link_libraries(hft_feed_handler_test 
@@ -238,6 +280,7 @@ add_test(NAME hft_object_pool_test COMMAND hft_object_pool_test)
 add_test(NAME hft_treasury_yield_test COMMAND hft_treasury_yield_test)
 add_test(NAME hft_treasury_pool_test COMMAND hft_treasury_pool_test)
 add_test(NAME hft_treasury_ring_buffer_test COMMAND hft_treasury_ring_buffer_test)
+add_test(NAME hft_order_book_test COMMAND hft_order_book_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
