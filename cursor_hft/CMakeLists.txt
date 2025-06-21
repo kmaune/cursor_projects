@@ -270,6 +270,13 @@ target_link_libraries(hft_feed_handler_benchmark
         hft_market_data hft_timing hft_memory hft_messaging
         benchmark::benchmark benchmark::benchmark_main)
 
+# End-to-End System Integration Benchmark
+add_executable(hft_end_to_end_benchmark benchmarks/system/end_to_end_benchmark.cpp)
+target_link_libraries(hft_end_to_end_benchmark 
+    PRIVATE 
+        hft_market_data hft_trading hft_timing hft_memory hft_messaging
+        benchmark::benchmark benchmark::benchmark_main)
+
 # Enable testing
 enable_testing()
 
