@@ -293,5 +293,45 @@ add_test(NAME hft_order_book_test COMMAND hft_order_book_test)
 add_executable(test_setup src/test_setup.cpp)
 target_link_libraries(test_setup PRIVATE hft_timing hft_messaging)
 
+# Benchmark automation system
+set(HFT_BENCHMARK_TARGETS
+    hft_timing_benchmark
+    hft_spsc_ring_buffer_benchmark
+    hft_object_pool_benchmark
+    hft_treasury_yield_benchmark
+    hft_treasury_pool_benchmark
+    hft_treasury_ring_buffer_benchmark
+    hft_order_book_benchmark
+    hft_feed_handler_benchmark
+    hft_end_to_end_benchmark
+)
+
+# Add custom target to run all benchmarks
+add_custom_target(benchmark
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run_benchmarks.sh ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS ${HFT_BENCHMARK_TARGETS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running all HFT benchmarks..."
+)
+
+# Add custom target to validate performance against baselines
+add_custom_target(benchmark-validate
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate_performance.py ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS ${HFT_BENCHMARK_TARGETS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Validating benchmark performance against baselines..."
+)
+
+# Add benchmarks as CTest tests for CI integration
+add_test(
+    NAME hft_performance_validation
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate_performance.py ${CMAKE_CURRENT_BINARY_DIR} --strict
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(hft_performance_validation PROPERTIES 
+    TIMEOUT 300
+    LABELS "performance;benchmark"
+)
+
 install(DIRECTORY include/hft/memory/ DESTINATION include/hft/memory)
 install(DIRECTORY include/hft/market_data/ DESTINATION include/hft/market_data)
