@@ -188,7 +188,8 @@ private:
 class TreasuryFeedHandler {
 public:
     TreasuryFeedHandler(size_t buffer_size = 8192) noexcept
-        : expected_sequence_(0), recent_messages_{}, recent_messages_idx_(0), stats_{}, parse_latency_hist_() {}
+        : expected_sequence_(0), recent_messages_{}, recent_messages_count_(0), 
+          recent_messages_idx_(0), stats_{}, parse_latency_hist_() {}
 
     // Process incoming raw messages
     size_t process_messages(
@@ -277,16 +278,51 @@ private:
     TreasuryTickBuffer tick_buffer_;
     TreasuryTradeBuffer trade_buffer_;
     uint64_t expected_sequence_;
-    std::array<uint64_t, 1024> recent_messages_;
-    size_t recent_messages_idx_;
+    
+    // Optimized duplicate detection using circular buffer with sorted search
+    static constexpr size_t RECENT_SIZE = 1024;
+    std::array<uint64_t, RECENT_SIZE> recent_messages_;
+    size_t recent_messages_count_;  // Number of valid entries (0 to RECENT_SIZE)
+    size_t recent_messages_idx_;    // Current write position
+    
     QualityStats stats_;
     LatencyHistogram parse_latency_hist_;
 
+    // Optimized duplicate detection using binary search on sorted portion
     bool is_duplicate(uint64_t seq) const noexcept {
-        return std::find(recent_messages_.begin(), recent_messages_.end(), seq) != recent_messages_.end();
+        if (recent_messages_count_ == 0) return false;
+        
+        // For small counts, linear search is faster than binary search
+        if (recent_messages_count_ <= 16) {
+            for (size_t i = 0; i < recent_messages_count_; ++i) {
+                if (recent_messages_[i] == seq) return true;
+            }
+            return false;
+        }
+        
+        // Binary search for larger counts
+        return std::binary_search(recent_messages_.begin(), 
+                                recent_messages_.begin() + recent_messages_count_, seq);
     }
+    
     void add_recent(uint64_t seq) noexcept {
-        recent_messages_[recent_messages_idx_++ % recent_messages_.size()] = seq;
+        if (recent_messages_count_ < RECENT_SIZE) {
+            // Still filling the buffer - insert in sorted order
+            auto insert_pos = std::upper_bound(recent_messages_.begin(),
+                                             recent_messages_.begin() + recent_messages_count_, seq);
+            std::move_backward(insert_pos, recent_messages_.begin() + recent_messages_count_,
+                             recent_messages_.begin() + recent_messages_count_ + 1);
+            *insert_pos = seq;
+            ++recent_messages_count_;
+        } else {
+            // Buffer full - replace oldest entry and re-sort
+            // For high-frequency trading, we accept the occasional sort cost
+            // vs constant O(n) duplicate detection
+            recent_messages_[recent_messages_idx_++ % RECENT_SIZE] = seq;
+            if (recent_messages_idx_ % 64 == 0) {  // Re-sort every 64 additions
+                std::sort(recent_messages_.begin(), recent_messages_.end());
+            }
+        }
     }
 };
 
