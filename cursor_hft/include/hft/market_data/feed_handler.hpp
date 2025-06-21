@@ -198,15 +198,15 @@ public:
         for (size_t i = 0; i < message_count; ++i) {
             const RawMarketMessage& msg = raw_messages[i];
             
-            // Check for sequence gaps BEFORE duplicate detection
-            if (expected_sequence_ != 0 && msg.sequence_number > expected_sequence_) {
-                ++stats_.sequence_gaps;
-            }
-            
-            // Duplicate detection
+            // Duplicate detection first
             if (is_duplicate(msg.sequence_number)) {
                 ++stats_.duplicate_messages;
-                continue;  // Skip processing but don't update expected_sequence_
+                continue;  // Skip processing and don't update expected_sequence_
+            }
+            
+            // Check for sequence gaps AFTER confirming it's not a duplicate
+            if (expected_sequence_ != 0 && msg.sequence_number > expected_sequence_) {
+                ++stats_.sequence_gaps;
             }
             
             // Update expected sequence only for non-duplicates

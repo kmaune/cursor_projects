@@ -123,12 +123,13 @@ TEST(FeedHandler, FeedHandlerWorkflow) {
 TEST(FeedHandler, QualityControlDuplicatesAndSequence) {
     TreasuryFeedHandler handler;
     auto batch = make_batch(5, MessageType::Tick, 1);
-    batch[2].sequence_number = batch[1].sequence_number; // duplicate
-    batch[4].sequence_number = 100; // sequence gap
+    batch[2].sequence_number = batch[1].sequence_number; // duplicate (3 becomes 2)
+    batch[4].sequence_number = 100; // sequence gap (5 becomes 100)
     handler.process_messages(batch.data(), batch.size());
     auto stats = handler.get_quality_stats();
     EXPECT_EQ(stats.duplicate_messages, 1u);
-    EXPECT_EQ(stats.sequence_gaps, 1u);
+    // Expect 2 gaps: missing seq 3 (gap 2->4) and missing seqs 5-99 (gap 4->100)
+    EXPECT_EQ(stats.sequence_gaps, 2u);
 }
 
 TEST(FeedHandler, MessageNormalization) {
