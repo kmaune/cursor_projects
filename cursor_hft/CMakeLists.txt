@@ -246,6 +246,21 @@ target_link_libraries(hft_advanced_market_maker_test
         gtest
 )
 
+# Add order lifecycle manager tests
+add_executable(hft_order_lifecycle_manager_test
+    tests/trading/test_order_lifecycle_manager.cpp
+)
+target_link_libraries(hft_order_lifecycle_manager_test
+    PRIVATE
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
 # Add timing benchmarks
 add_executable(hft_timing_benchmark
     benchmarks/timing/hft_timer_benchmark.cpp
@@ -400,6 +415,7 @@ add_test(NAME hft_order_book_test COMMAND hft_order_book_test)
 add_test(NAME hft_simple_market_maker_test COMMAND hft_simple_market_maker_test)
 add_test(NAME hft_multi_strategy_manager_test COMMAND hft_multi_strategy_manager_test)
 add_test(NAME hft_advanced_market_maker_test COMMAND hft_advanced_market_maker_test)
+add_test(NAME hft_order_lifecycle_manager_test COMMAND hft_order_lifecycle_manager_test)
 
 # Performance tests are separate and not run by default in CI
 # Run manually with: ./hft_simple_market_maker_performance_test
