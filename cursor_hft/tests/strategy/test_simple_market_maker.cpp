@@ -264,3 +264,187 @@ TEST_F(SimpleMarketMakerTest, DecisionConsistency) {
         EXPECT_GT(decision.decision_time_ns, 0);
     }
 }
+
+// ========== Phase 2: Enhanced Position Management and Risk Tests ==========
+
+// Test enhanced P&L calculation
+TEST_F(SimpleMarketMakerTest, EnhancedPnLCalculation) {
+    const TreasuryType instrument = TreasuryType::Note_10Y;
+    
+    // Initial state - no P&L
+    EXPECT_EQ(strategy_->get_daily_pnl(instrument), 0.0);
+    EXPECT_EQ(strategy_->get_unrealized_pnl(instrument), 0.0);
+    
+    // Execute a buy trade
+    const int64_t buy_size = 5000000;  // $5M
+    const Price32nd buy_price = Price32nd::from_decimal(102.5);
+    strategy_->update_position(instrument, buy_size, buy_price);
+    
+    // Should track the position but no P&L yet
+    EXPECT_EQ(strategy_->get_position(instrument), buy_size);
+    EXPECT_EQ(strategy_->get_daily_pnl(instrument), 0.0);  // No realized P&L yet
+    
+    // Update market price to simulate mark-to-market
+    const Price32nd higher_price = Price32nd::from_decimal(102.75);  // 25bp gain
+    strategy_->update_market_price(instrument, higher_price);
+    
+    // Should now have unrealized P&L (position in dollars, price change in points)
+    const double expected_unrealized = buy_size * (102.75 - 102.5);
+    EXPECT_NEAR(strategy_->get_unrealized_pnl(instrument), expected_unrealized, 1000.0);
+    
+    // Execute a partial sell to realize some P&L
+    const int64_t sell_size = -2000000;  // Sell $2M
+    strategy_->update_position(instrument, sell_size, higher_price);
+    
+    // Should have realized P&L now
+    EXPECT_GT(strategy_->get_daily_pnl(instrument), 0.0);
+    EXPECT_EQ(strategy_->get_position(instrument), buy_size + sell_size);  // Net position reduced
+}
+
+// Test risk score calculation
+TEST_F(SimpleMarketMakerTest, RiskScoreCalculation) {
+    const TreasuryType instrument = TreasuryType::Note_10Y;
+    
+    // Initial risk score should be low
+    EXPECT_LT(strategy_->get_risk_score(instrument), 100);
+    
+    // Add position and check risk score increases
+    strategy_->update_position(instrument, 25000000, Price32nd::from_decimal(102.5));  // $25M
+    uint32_t risk_score_1 = strategy_->get_risk_score(instrument);
+    EXPECT_GT(risk_score_1, 100);
+    
+    // Add more position - risk should increase
+    strategy_->update_position(instrument, 20000000, Price32nd::from_decimal(102.5));  // Additional $20M
+    uint32_t risk_score_2 = strategy_->get_risk_score(instrument);
+    EXPECT_GT(risk_score_2, risk_score_1);
+    
+    // Risk score should be reasonable (not exceed maximum)
+    EXPECT_LE(risk_score_2, 1000);
+}
+
+// Test portfolio VaR calculation
+TEST_F(SimpleMarketMakerTest, PortfolioVaRCalculation) {
+    // Initial portfolio VaR should be zero
+    EXPECT_EQ(strategy_->get_portfolio_var(), 0.0);
+    
+    // Add positions in multiple instruments
+    strategy_->update_position(TreasuryType::Note_2Y, 10000000, Price32nd::from_decimal(99.5));
+    strategy_->update_position(TreasuryType::Note_10Y, 15000000, Price32nd::from_decimal(102.5));
+    strategy_->update_position(TreasuryType::Bond_30Y, 8000000, Price32nd::from_decimal(105.0));
+    
+    // Update market prices to calculate position VaR
+    strategy_->update_market_price(TreasuryType::Note_2Y, Price32nd::from_decimal(99.5));
+    strategy_->update_market_price(TreasuryType::Note_10Y, Price32nd::from_decimal(102.5));
+    strategy_->update_market_price(TreasuryType::Bond_30Y, Price32nd::from_decimal(105.0));
+    
+    // Update portfolio risk
+    strategy_->update_portfolio_risk();
+    
+    // Portfolio VaR should be positive but reasonable
+    EXPECT_GT(strategy_->get_portfolio_var(), 0.0);
+    EXPECT_LT(strategy_->get_portfolio_var(), 2000000.0);  // Should be reasonable for treasury positions
+}
+
+// Test position skewing
+TEST_F(SimpleMarketMakerTest, PositionSkewing) {
+    auto update = create_test_market_update();
+    
+    // Get initial decision with no position
+    auto decision_no_position = strategy_->make_decision(update);
+    
+    // Add a large long position
+    strategy_->update_position(TreasuryType::Note_10Y, 30000000, Price32nd::from_decimal(102.5));
+    
+    // Get decision with position - should skew quotes
+    auto decision_with_position = strategy_->make_decision(update);
+    
+    // With long position, should favor selling (ask should be more competitive relative to bid)
+    const double original_spread = decision_no_position.ask_price.to_decimal() - decision_no_position.bid_price.to_decimal();
+    const double skewed_spread = decision_with_position.ask_price.to_decimal() - decision_with_position.bid_price.to_decimal();
+    
+    // Spread might change due to skewing
+    EXPECT_GT(skewed_spread, 0.0);  // Still positive spread
+    EXPECT_NE(decision_no_position.bid_price.to_decimal(), decision_with_position.bid_price.to_decimal());
+}
+
+// Test enhanced risk limits
+TEST_F(SimpleMarketMakerTest, EnhancedRiskLimits) {
+    const TreasuryType instrument = TreasuryType::Note_10Y;
+    
+    // Should pass normal risk checks initially
+    auto update = create_test_market_update(instrument);
+    auto decision = strategy_->make_decision(update);
+    EXPECT_EQ(decision.action, SimpleMarketMaker::TradingDecision::Action::UPDATE_QUOTES);
+    
+    // Add position close to limits
+    strategy_->update_position(instrument, 45000000, Price32nd::from_decimal(102.5));  // $45M
+    
+    // Update market price and portfolio risk
+    strategy_->update_market_price(instrument, Price32nd::from_decimal(102.5));
+    strategy_->update_portfolio_risk();
+    
+    // Should still quote with position near limits
+    decision = strategy_->make_decision(update);
+    EXPECT_EQ(decision.action, SimpleMarketMaker::TradingDecision::Action::UPDATE_QUOTES);
+    
+    // Risk score should be high but not maximum
+    EXPECT_GT(strategy_->get_risk_score(instrument), 600);
+    EXPECT_LT(strategy_->get_risk_score(instrument), 950);
+}
+
+// Test volume-weighted average price calculation
+TEST_F(SimpleMarketMakerTest, VolumeWeightedAveragePrice) {
+    const TreasuryType instrument = TreasuryType::Note_10Y;
+    
+    // Execute trades at different prices
+    strategy_->update_position(instrument, 5000000, Price32nd::from_decimal(102.0));   // $5M at 102.0
+    strategy_->update_position(instrument, 3000000, Price32nd::from_decimal(102.5));   // $3M at 102.5
+    strategy_->update_position(instrument, 2000000, Price32nd::from_decimal(103.0));   // $2M at 103.0
+    
+    // Total: $10M position
+    EXPECT_EQ(strategy_->get_position(instrument), 10000000);
+    
+    // VWAP should be weighted average: (5*102.0 + 3*102.5 + 2*103.0) / 10 = 102.25
+    const double expected_vwap = (5.0 * 102.0 + 3.0 * 102.5 + 2.0 * 103.0) / 10.0;
+    
+    // Get current market price to verify P&L calculation is based on VWAP
+    strategy_->update_market_price(instrument, Price32nd::from_decimal(102.5));
+    const double unrealized_pnl = strategy_->get_unrealized_pnl(instrument);
+    const double expected_pnl = 10000000 * (102.5 - expected_vwap);
+    
+    EXPECT_NEAR(unrealized_pnl, expected_pnl, 10000.0);  // Allow for scaling differences
+}
+
+// Test multiple instrument coordination
+TEST_F(SimpleMarketMakerTest, MultiInstrumentCoordination) {
+    // Add positions in multiple instruments
+    strategy_->update_position(TreasuryType::Note_2Y, 5000000, Price32nd::from_decimal(99.5));
+    strategy_->update_position(TreasuryType::Note_10Y, 10000000, Price32nd::from_decimal(102.5));
+    strategy_->update_position(TreasuryType::Bond_30Y, 3000000, Price32nd::from_decimal(105.0));
+    
+    // Update market prices
+    strategy_->update_market_price(TreasuryType::Note_2Y, Price32nd::from_decimal(99.6));
+    strategy_->update_market_price(TreasuryType::Note_10Y, Price32nd::from_decimal(102.4));
+    strategy_->update_market_price(TreasuryType::Bond_30Y, Price32nd::from_decimal(105.1));
+    
+    // Each instrument should have different risk characteristics
+    uint32_t risk_2y = strategy_->get_risk_score(TreasuryType::Note_2Y);
+    uint32_t risk_10y = strategy_->get_risk_score(TreasuryType::Note_10Y);
+    uint32_t risk_30y = strategy_->get_risk_score(TreasuryType::Bond_30Y);
+    
+    // 10Y should have higher risk than 2Y due to larger position
+    EXPECT_GT(risk_10y, risk_2y);
+    
+    // Risk should be reasonable for all instruments 
+    EXPECT_LT(risk_2y, 500);
+    EXPECT_LT(risk_10y, 800);
+    EXPECT_LT(risk_30y, 800);
+    
+    // All should be generating quotes
+    for (auto instrument : {TreasuryType::Note_2Y, TreasuryType::Note_10Y, TreasuryType::Bond_30Y}) {
+        auto update = create_test_market_update(instrument);
+        auto decision = strategy_->make_decision(update);
+        EXPECT_EQ(decision.action, SimpleMarketMaker::TradingDecision::Action::UPDATE_QUOTES);
+        EXPECT_EQ(decision.instrument, instrument);
+    }
+}
