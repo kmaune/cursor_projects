@@ -1,15 +1,14 @@
-#include <iostream>
+#include <benchmark/benchmark.h>
 #include <random>
 #include "hft/market_data/treasury_instruments.hpp"
 #include "hft/timing/hft_timer.hpp"
 
 using namespace hft::market_data;
 
-int main() {
-    constexpr size_t N = 1'000'000;
+static void BM_YieldCalculation_PriceToYield(benchmark::State& state) {
     std::mt19937_64 rng(42);
     std::uniform_real_distribution<double> price_dist(95.0, 105.0);
-    std::uniform_real_distribution<double> yield_dist(0.01, 0.05);
+    
     TreasuryInstrument instrs[] = {
         TreasuryInstrument(TreasuryType::Bill_3M, 90, 1'000'000),
         TreasuryInstrument(TreasuryType::Bill_6M, 180, 1'000'000),
@@ -18,35 +17,69 @@ int main() {
         TreasuryInstrument(TreasuryType::Note_10Y, 3650, 1'000'000),
         TreasuryInstrument(TreasuryType::Bond_30Y, 10950, 1'000'000)
     };
-    double min_ns = 1e9, max_ns = 0, sum_ns = 0;
-    for (auto& instr : instrs) {
-        for (size_t i = 0; i < N; ++i) {
+    
+    size_t instr_index = state.range(0) % 6;
+    auto& instr = instrs[instr_index];
+    
+    for (auto _ : state) {
+        double price = price_dist(rng);
+        auto p32 = Price32nd::from_decimal(price);
+        double yield = YieldCalculator::price_to_yield(instr, p32, instr.maturity_days);
+        benchmark::DoNotOptimize(yield);
+    }
+    
+    state.SetLabel("Price to yield conversion");
+}
+BENCHMARK(BM_YieldCalculation_PriceToYield)->Arg(0)->Arg(1)->Arg(2)->Arg(3)->Arg(4)->Arg(5);
+
+static void BM_YieldCalculation_YieldToPrice(benchmark::State& state) {
+    std::mt19937_64 rng(42);
+    std::uniform_real_distribution<double> yield_dist(0.01, 0.05);
+    
+    TreasuryInstrument instrs[] = {
+        TreasuryInstrument(TreasuryType::Bill_3M, 90, 1'000'000),
+        TreasuryInstrument(TreasuryType::Bill_6M, 180, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_2Y, 730, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_5Y, 1825, 1'000'000),
+        TreasuryInstrument(TreasuryType::Note_10Y, 3650, 1'000'000),
+        TreasuryInstrument(TreasuryType::Bond_30Y, 10950, 1'000'000)
+    };
+    
+    size_t instr_index = state.range(0) % 6;
+    auto& instr = instrs[instr_index];
+    
+    for (auto _ : state) {
+        double yield = yield_dist(rng);
+        auto p32 = YieldCalculator::yield_to_price(instr, yield, instr.maturity_days);
+        benchmark::DoNotOptimize(p32);
+    }
+    
+    state.SetLabel("Yield to price conversion");
+}
+BENCHMARK(BM_YieldCalculation_YieldToPrice)->Arg(0)->Arg(1)->Arg(2)->Arg(3)->Arg(4)->Arg(5);
+
+static void BM_YieldCalculation_Throughput(benchmark::State& state) {
+    std::mt19937_64 rng(42);
+    std::uniform_real_distribution<double> price_dist(95.0, 105.0);
+    std::uniform_real_distribution<double> yield_dist(0.01, 0.05);
+    
+    TreasuryInstrument instr(TreasuryType::Note_10Y, 3650, 1'000'000);
+    constexpr size_t ops_per_iteration = 1000;
+    
+    for (auto _ : state) {
+        for (size_t i = 0; i < ops_per_iteration; ++i) {
             double price = price_dist(rng);
             auto p32 = Price32nd::from_decimal(price);
-            auto start = hft::HFTTimer::get_cycles();
             double yield = YieldCalculator::price_to_yield(instr, p32, instr.maturity_days);
-            auto end = hft::HFTTimer::get_cycles();
-            double ns = hft::HFTTimer::cycles_to_ns(end - start);
-            min_ns = std::min(min_ns, ns);
-            max_ns = std::max(max_ns, ns);
-            sum_ns += ns;
+            auto p32_back = YieldCalculator::yield_to_price(instr, yield, instr.maturity_days);
+            benchmark::DoNotOptimize(yield);
+            benchmark::DoNotOptimize(p32_back);
         }
-        std::cout << "Instrument " << static_cast<int>(instr.type) << ": price_to_yield min/avg/max: "
-                  << min_ns << "/" << (sum_ns/N) << "/" << max_ns << " ns\n";
-        min_ns = 1e9; max_ns = 0; sum_ns = 0;
-        for (size_t i = 0; i < N; ++i) {
-            double yield = yield_dist(rng);
-            auto start = hft::HFTTimer::get_cycles();
-            auto p32 = YieldCalculator::yield_to_price(instr, yield, instr.maturity_days);
-            auto end = hft::HFTTimer::get_cycles();
-            double ns = hft::HFTTimer::cycles_to_ns(end - start);
-            min_ns = std::min(min_ns, ns);
-            max_ns = std::max(max_ns, ns);
-            sum_ns += ns;
-        }
-        std::cout << "Instrument " << static_cast<int>(instr.type) << ": yield_to_price min/avg/max: "
-                  << min_ns << "/" << (sum_ns/N) << "/" << max_ns << " ns\n";
-        min_ns = 1e9; max_ns = 0; sum_ns = 0;
     }
-    return 0;
-} 
+    
+    state.SetItemsProcessed(ops_per_iteration * state.iterations());
+    state.SetLabel("Yield calculation throughput");
+}
+BENCHMARK(BM_YieldCalculation_Throughput);
+
+BENCHMARK_MAIN(); 

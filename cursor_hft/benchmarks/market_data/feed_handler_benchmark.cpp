@@ -1,8 +1,8 @@
 #include "hft/market_data/feed_handler.hpp"
 #include "hft/market_data/treasury_instruments.hpp"
 #include "hft/timing/hft_timer.hpp"
+#include <benchmark/benchmark.h>
 #include <vector>
-#include <iostream>
 #include <random>
 #include <cstring>
 
@@ -39,82 +39,100 @@ std::vector<RawMarketMessage> make_batch(size_t n, MessageType type, uint32_t in
 
 } // namespace
 
-int main() {
-    constexpr size_t N = 1000000;
-    std::cout << "Feed Handler Benchmark (" << N << " messages)\n";
-
-    // Single message parsing latency
+static void BM_FeedHandler_SingleMessageLatency(benchmark::State& state) {
     RawMarketMessage msg = make_raw_msg(1, MessageType::Tick, 1, 101.5, 1000);
     TreasuryTick tick;
-    HFTTimer::ns_t min_latency = UINT64_MAX, max_latency = 0, sum_latency = 0;
-    for (int i = 0; i < 1000; ++i) {
-        HFTTimer::cycle_t start = HFTTimer::get_cycles();
+    
+    for (auto _ : state) {
         HFTTimer::ns_t latency = 0;
         MessageParser<TreasuryTick>::parse_message(msg, tick, latency);
-        HFTTimer::cycle_t end = HFTTimer::get_cycles();
-        auto ns = HFTTimer::cycles_to_ns(end - start);
-        min_latency = std::min(min_latency, ns);
-        max_latency = std::max(max_latency, ns);
-        sum_latency += ns;
+        benchmark::DoNotOptimize(tick);
     }
-    std::cout << "Single message parsing latency: min " << min_latency << " ns, max " << max_latency << " ns, avg " << (sum_latency / 1000) << " ns\n";
+    
+    state.SetLabel("Single message parsing latency");
+}
+BENCHMARK(BM_FeedHandler_SingleMessageLatency);
 
-    // Batch parsing throughput
-    auto batch = make_batch(N, MessageType::Tick, 2);
-    std::vector<TreasuryTick> ticks(N);
-    size_t invalid = 0;
-    HFTTimer::cycle_t batch_start = HFTTimer::get_cycles();
-    size_t parsed = MessageParser<TreasuryTick>::parse_batch(batch.begin(), batch.end(), ticks.begin(), ticks.end(), invalid);
-    HFTTimer::cycle_t batch_end = HFTTimer::get_cycles();
-    double batch_ns = HFTTimer::cycles_to_ns(batch_end - batch_start);
-    double throughput = (double)parsed / (batch_ns / 1e9);
-    std::cout << "Batch parsing throughput: " << throughput << " messages/sec\n";
+static void BM_FeedHandler_BatchParsingThroughput(benchmark::State& state) {
+    constexpr size_t batch_size = 10000;
+    auto batch = make_batch(batch_size, MessageType::Tick, 2);
+    std::vector<TreasuryTick> ticks(batch_size);
+    
+    for (auto _ : state) {
+        size_t invalid = 0;
+        size_t parsed = MessageParser<TreasuryTick>::parse_batch(
+            batch.begin(), batch.end(), ticks.begin(), ticks.end(), invalid);
+        benchmark::DoNotOptimize(parsed);
+        benchmark::DoNotOptimize(invalid);
+    }
+    
+    state.SetItemsProcessed(batch_size * state.iterations());
+    state.SetLabel("Batch parsing throughput");
+}
+BENCHMARK(BM_FeedHandler_BatchParsingThroughput);
 
-    // Feed handler end-to-end processing
+static void BM_FeedHandler_EndToEndThroughput(benchmark::State& state) {
+    constexpr size_t batch_size = 10000;
+    auto batch = make_batch(batch_size, MessageType::Tick, 2);
     TreasuryFeedHandler handler;
-    batch_start = HFTTimer::get_cycles();
-    size_t processed = handler.process_messages(batch.data(), batch.size());
-    batch_end = HFTTimer::get_cycles();
-    batch_ns = HFTTimer::cycles_to_ns(batch_end - batch_start);
-    throughput = (double)processed / (batch_ns / 1e9);
-    std::cout << "Feed handler end-to-end throughput: " << throughput << " messages/sec\n";
+    
+    for (auto _ : state) {
+        size_t processed = handler.process_messages(batch.data(), batch.size());
+        benchmark::DoNotOptimize(processed);
+    }
+    
+    state.SetItemsProcessed(batch_size * state.iterations());
+    state.SetLabel("Feed handler end-to-end throughput");
+}
+BENCHMARK(BM_FeedHandler_EndToEndThroughput);
 
-    // Object pool integration performance
+static void BM_FeedHandler_ObjectPoolPerformance(benchmark::State& state) {
     TreasuryTickPool tick_pool;
-    HFTTimer::cycle_t pool_start = HFTTimer::get_cycles();
-    for (size_t i = 0; i < N; ++i) {
-        auto* t = tick_pool.acquire();
-        if (t) tick_pool.release(t);
+    constexpr size_t pool_ops = 1000;
+    
+    for (auto _ : state) {
+        for (size_t i = 0; i < pool_ops; ++i) {
+            auto* t = tick_pool.acquire();
+            if (t) tick_pool.release(t);
+        }
     }
-    HFTTimer::cycle_t pool_end = HFTTimer::get_cycles();
-    double pool_ns = HFTTimer::cycles_to_ns(pool_end - pool_start);
-    std::cout << "Object pool acquire/release avg: " << (pool_ns / N) << " ns\n";
+    
+    state.SetItemsProcessed(pool_ops * state.iterations());
+    state.SetLabel("Object pool acquire/release");
+}
+BENCHMARK(BM_FeedHandler_ObjectPoolPerformance);
 
-    // Checksum validation speed
-    HFTTimer::cycle_t cksum_start = HFTTimer::get_cycles();
-    uint16_t cksum = 0;
-    for (size_t i = 0; i < N; ++i) {
-        cksum ^= batch[i].checksum;
+static void BM_FeedHandler_ChecksumValidation(benchmark::State& state) {
+    constexpr size_t batch_size = 10000;
+    auto batch = make_batch(batch_size, MessageType::Tick, 2);
+    
+    for (auto _ : state) {
+        uint16_t cksum = 0;
+        for (size_t i = 0; i < batch_size; ++i) {
+            cksum ^= batch[i].checksum;
+        }
+        benchmark::DoNotOptimize(cksum);
     }
-    HFTTimer::cycle_t cksum_end = HFTTimer::get_cycles();
-    double cksum_ns = HFTTimer::cycles_to_ns(cksum_end - cksum_start);
-    std::cout << "Checksum validation avg: " << (cksum_ns / N) << " ns\n";
+    
+    state.SetItemsProcessed(batch_size * state.iterations());
+    state.SetLabel("Checksum validation");
+}
+BENCHMARK(BM_FeedHandler_ChecksumValidation);
 
-    // Message normalization overhead
-    HFTTimer::cycle_t norm_start = HFTTimer::get_cycles();
-    for (size_t i = 0; i < N; ++i) {
-        auto t = MessageNormalizer::normalize_instrument_id(batch[i].instrument_id);
-        (void)t;
+static void BM_FeedHandler_MessageNormalization(benchmark::State& state) {
+    constexpr size_t batch_size = 10000;
+    auto batch = make_batch(batch_size, MessageType::Tick, 2);
+    
+    for (auto _ : state) {
+        for (size_t i = 0; i < batch_size; ++i) {
+            auto t = MessageNormalizer::normalize_instrument_id(batch[i].instrument_id);
+            benchmark::DoNotOptimize(t);
+        }
     }
-    HFTTimer::cycle_t norm_end = HFTTimer::get_cycles();
-    double norm_ns = HFTTimer::cycles_to_ns(norm_end - norm_start);
-    std::cout << "Normalization avg: " << (norm_ns / N) << " ns\n";
+    
+    state.SetItemsProcessed(batch_size * state.iterations());
+    state.SetLabel("Message normalization");
+}
+BENCHMARK(BM_FeedHandler_MessageNormalization);
 
-    // Throughput validation
-    if (throughput > 1e6) {
-        std::cout << "PASS: Throughput > 1M messages/sec\n";
-    } else {
-        std::cout << "FAIL: Throughput < 1M messages/sec\n";
-    }
-    return 0;
-} 
+BENCHMARK_MAIN(); 

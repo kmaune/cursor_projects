@@ -308,7 +308,7 @@ set(HFT_BENCHMARK_TARGETS
 
 # Add custom target to run all benchmarks
 add_custom_target(benchmark
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run_benchmarks.sh ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/simple_benchmark_validator.py --quick
     DEPENDS ${HFT_BENCHMARK_TARGETS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Running all HFT benchmarks..."
@@ -316,16 +316,16 @@ add_custom_target(benchmark
 
 # Add custom target to validate performance against baselines
 add_custom_target(benchmark-validate
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate_performance.py ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/simple_benchmark_validator.py
     DEPENDS ${HFT_BENCHMARK_TARGETS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Validating benchmark performance against baselines..."
+    COMMENT "Validating benchmark performance against targets..."
 )
 
 # Add benchmarks as CTest tests for CI integration
 add_test(
     NAME hft_performance_validation
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate_performance.py ${CMAKE_CURRENT_BINARY_DIR} --strict
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/simple_benchmark_validator.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 set_tests_properties(hft_performance_validation PROPERTIES 
