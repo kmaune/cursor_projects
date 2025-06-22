@@ -6,13 +6,13 @@ A high-performance, low-latency trading system for US Treasury markets, built us
 
 **World-Class HFT Performance - Exceeds All Industry Targets:**
 
-| **Metric** | **Achieved** | **Target** | **Performance** |
-|------------|--------------|------------|-----------------|
-| **Tick-to-Trade Latency** | **667ns median** | <15μs | **22.5x BETTER** |
-| **Feed Handler Throughput** | **1.98M msgs/sec** | >1M msgs/sec | **98% BETTER** |
-| **Order Book Operations** | **407ns add, 455ns cancel** | <500ns | **EXCEEDS TARGET** |
-| **Best Bid/Offer Lookup** | **13ns** | <100ns | **87% BETTER** |
-| **Memory Allocation** | **Zero in hot paths** | Zero required | **PERFECT** |
+| Metric | Achieved | Target | Performance Improvement |
+|--------|----------|--------|-------------------------|
+| Tick-to-Trade Latency | 667ns median | <15μs | 22.5x better |
+| Feed Handler Throughput | 1.98M msgs/sec | >1M msgs/sec | 98% better |
+| Order Book Operations | 407ns add, 455ns cancel | <500ns | Exceeds target |
+| Best Bid/Offer Lookup | 13ns | <100ns | 87% better |
+| Memory Allocation | Zero in hot paths | Zero required | Perfect compliance |
 
 ## System Architecture
 
