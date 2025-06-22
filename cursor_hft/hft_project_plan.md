@@ -125,11 +125,15 @@ cursor_hft/
     - Automated performance comparison and optimization
     - **Strategy Categories:**
       - Market making (multiple approaches)
+      - Dynamic spread adjustment algorithms
       - Momentum strategies
       - Mean reversion strategies  
       - Arbitrage strategies
+    - **Throughput Target:** 2.5M strategy decisions/sec
 13. **Advanced backtesting engine**
     - Historical simulation with multiple strategies
+    - Tournament-style strategy competition
+    - Automated performance comparison system
     - Strategy parameter optimization
     - Risk-adjusted performance metrics
     - Cross-strategy correlation analysis
