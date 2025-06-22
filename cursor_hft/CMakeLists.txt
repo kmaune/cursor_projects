@@ -96,6 +96,32 @@ target_link_libraries(hft_strategy INTERFACE
     hft_trading
 )
 
+# Add monitoring library (header-only)
+add_library(hft_monitoring INTERFACE)
+target_include_directories(hft_monitoring INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hft_monitoring INTERFACE 
+    hft_timing
+    hft_memory
+    hft_messaging
+    hft_market_data
+)
+
+# Add recovery library (header-only)
+add_library(hft_recovery INTERFACE)
+target_include_directories(hft_recovery INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hft_recovery INTERFACE 
+    hft_timing
+    hft_memory
+    hft_messaging
+    hft_market_data
+    hft_trading
+    hft_monitoring
+)
+
 # Add timing tests
 add_executable(hft_timing_test
     tests/timing/hft_timer_test.cpp
@@ -261,6 +287,53 @@ target_link_libraries(hft_order_lifecycle_manager_test
         gtest
 )
 
+# Add position reconciliation manager tests
+add_executable(hft_position_reconciliation_manager_test
+    tests/trading/test_position_reconciliation_manager.cpp
+)
+target_link_libraries(hft_position_reconciliation_manager_test
+    PRIVATE
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
+# Add production monitoring system tests
+add_executable(hft_production_monitoring_system_test
+    tests/monitoring/test_production_monitoring_system.cpp
+)
+target_link_libraries(hft_production_monitoring_system_test
+    PRIVATE
+        hft_monitoring
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
+# Add fault tolerance manager tests
+add_executable(hft_fault_tolerance_manager_test
+    tests/recovery/test_fault_tolerance_manager.cpp
+)
+target_link_libraries(hft_fault_tolerance_manager_test
+    PRIVATE
+        hft_recovery
+        hft_trading
+        hft_monitoring
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
 # Add timing benchmarks
 add_executable(hft_timing_benchmark
     benchmarks/timing/hft_timer_benchmark.cpp
@@ -416,6 +489,9 @@ add_test(NAME hft_simple_market_maker_test COMMAND hft_simple_market_maker_test)
 add_test(NAME hft_multi_strategy_manager_test COMMAND hft_multi_strategy_manager_test)
 add_test(NAME hft_advanced_market_maker_test COMMAND hft_advanced_market_maker_test)
 add_test(NAME hft_order_lifecycle_manager_test COMMAND hft_order_lifecycle_manager_test)
+add_test(NAME hft_position_reconciliation_manager_test COMMAND hft_position_reconciliation_manager_test)
+add_test(NAME hft_production_monitoring_system_test COMMAND hft_production_monitoring_system_test)
+add_test(NAME hft_fault_tolerance_manager_test COMMAND hft_fault_tolerance_manager_test)
 
 # Performance tests are separate and not run by default in CI
 # Run manually with: ./hft_simple_market_maker_performance_test
