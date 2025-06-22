@@ -214,6 +214,38 @@ target_link_libraries(hft_simple_market_maker_performance_test
         gtest
 )
 
+# Add multi-strategy manager tests
+add_executable(hft_multi_strategy_manager_test
+    tests/strategy/test_multi_strategy_manager.cpp
+)
+target_link_libraries(hft_multi_strategy_manager_test
+    PRIVATE
+        hft_strategy
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
+# Add advanced market maker tests
+add_executable(hft_advanced_market_maker_test
+    tests/strategy/test_advanced_market_maker.cpp
+)
+target_link_libraries(hft_advanced_market_maker_test
+    PRIVATE
+        hft_strategy
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        gtest_main
+        gtest
+)
+
 # Add timing benchmarks
 add_executable(hft_timing_benchmark
     benchmarks/timing/hft_timer_benchmark.cpp
@@ -316,6 +348,22 @@ target_link_libraries(hft_simple_market_maker_benchmark
         benchmark::benchmark_main
 )
 
+# Add advanced market maker benchmark
+add_executable(hft_advanced_market_maker_benchmark
+    benchmarks/strategy/advanced_market_maker_benchmark.cpp
+)
+target_link_libraries(hft_advanced_market_maker_benchmark
+    PRIVATE
+        hft_strategy
+        hft_trading
+        hft_market_data
+        hft_memory
+        hft_messaging
+        hft_timing
+        benchmark::benchmark
+        benchmark::benchmark_main
+)
+
 # Feed Handler Test
 add_executable(hft_feed_handler_test tests/market_data/feed_handler_test.cpp)
 target_link_libraries(hft_feed_handler_test 
@@ -350,6 +398,8 @@ add_test(NAME hft_treasury_pool_test COMMAND hft_treasury_pool_test)
 add_test(NAME hft_treasury_ring_buffer_test COMMAND hft_treasury_ring_buffer_test)
 add_test(NAME hft_order_book_test COMMAND hft_order_book_test)
 add_test(NAME hft_simple_market_maker_test COMMAND hft_simple_market_maker_test)
+add_test(NAME hft_multi_strategy_manager_test COMMAND hft_multi_strategy_manager_test)
+add_test(NAME hft_advanced_market_maker_test COMMAND hft_advanced_market_maker_test)
 
 # Performance tests are separate and not run by default in CI
 # Run manually with: ./hft_simple_market_maker_performance_test
@@ -369,6 +419,7 @@ set(HFT_BENCHMARK_TARGETS
     hft_treasury_ring_buffer_benchmark
     hft_order_book_benchmark
     hft_simple_market_maker_benchmark
+    hft_advanced_market_maker_benchmark
     hft_feed_handler_benchmark
     hft_end_to_end_benchmark
 )
