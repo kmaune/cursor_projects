@@ -83,19 +83,6 @@ target_link_libraries(hft_trading INTERFACE
     hft_market_data
 )
 
-# Add strategy library (header-only)
-add_library(hft_strategy INTERFACE)
-target_include_directories(hft_strategy INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_link_libraries(hft_strategy INTERFACE 
-    hft_timing
-    hft_memory
-    hft_messaging
-    hft_market_data
-    hft_trading
-)
-
 # Add timing tests
 add_executable(hft_timing_test
     tests/timing/hft_timer_test.cpp
@@ -173,67 +160,6 @@ add_executable(hft_order_book_test
 )
 target_link_libraries(hft_order_book_test
     PRIVATE
-        hft_trading
-        hft_market_data
-        hft_memory
-        hft_messaging
-        hft_timing
-        gtest_main
-        gtest
-)
-
-# Add strategy tests
-add_executable(hft_integrated_strategy_test
-    tests/strategy/test_integrated_market_making_strategy.cpp
-)
-target_link_libraries(hft_integrated_strategy_test
-    PRIVATE
-        hft_strategy
-        hft_trading
-        hft_market_data
-        hft_memory
-        hft_messaging
-        hft_timing
-        gtest_main
-        gtest
-)
-
-add_executable(hft_treasury_quote_manager_test
-    tests/strategy/test_treasury_quote_manager.cpp
-)
-target_link_libraries(hft_treasury_quote_manager_test
-    PRIVATE
-        hft_strategy
-        hft_trading
-        hft_market_data
-        hft_memory
-        hft_messaging
-        hft_timing
-        gtest_main
-        gtest
-)
-
-add_executable(hft_inventory_manager_test
-    tests/strategy/test_inventory_manager.cpp
-)
-target_link_libraries(hft_inventory_manager_test
-    PRIVATE
-        hft_strategy
-        hft_trading
-        hft_market_data
-        hft_memory
-        hft_messaging
-        hft_timing
-        gtest_main
-        gtest
-)
-
-add_executable(hft_risk_integration_test
-    tests/strategy/test_risk_integration.cpp
-)
-target_link_libraries(hft_risk_integration_test
-    PRIVATE
-        hft_strategy
         hft_trading
         hft_market_data
         hft_memory
@@ -329,22 +255,6 @@ target_link_libraries(hft_order_book_benchmark
         benchmark::benchmark_main
 )
 
-# Add strategy benchmarks
-add_executable(hft_integrated_strategy_benchmark
-    benchmarks/strategy/benchmark_integrated_strategy.cpp
-)
-target_link_libraries(hft_integrated_strategy_benchmark
-    PRIVATE
-        hft_strategy
-        hft_trading
-        hft_market_data
-        hft_memory
-        hft_messaging
-        hft_timing
-        benchmark::benchmark
-        benchmark::benchmark_main
-)
-
 # Feed Handler Test
 add_executable(hft_feed_handler_test tests/market_data/feed_handler_test.cpp)
 target_link_libraries(hft_feed_handler_test 
@@ -378,10 +288,6 @@ add_test(NAME hft_treasury_yield_test COMMAND hft_treasury_yield_test)
 add_test(NAME hft_treasury_pool_test COMMAND hft_treasury_pool_test)
 add_test(NAME hft_treasury_ring_buffer_test COMMAND hft_treasury_ring_buffer_test)
 add_test(NAME hft_order_book_test COMMAND hft_order_book_test)
-add_test(NAME hft_integrated_strategy_test COMMAND hft_integrated_strategy_test)
-add_test(NAME hft_treasury_quote_manager_test COMMAND hft_treasury_quote_manager_test)
-add_test(NAME hft_inventory_manager_test COMMAND hft_inventory_manager_test)
-add_test(NAME hft_risk_integration_test COMMAND hft_risk_integration_test)
 
 # Add a simple executable for testing
 add_executable(test_setup src/test_setup.cpp)
@@ -398,7 +304,6 @@ set(HFT_BENCHMARK_TARGETS
     hft_order_book_benchmark
     hft_feed_handler_benchmark
     hft_end_to_end_benchmark
-    hft_integrated_strategy_benchmark
 )
 
 # Add custom target to run all benchmarks
